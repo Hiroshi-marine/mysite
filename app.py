@@ -1,48 +1,75 @@
 from flask import Flask, render_template, request
-import psycopg2
-import os
+import sqlite3
 
-app = Flask(__name__)
+app = Flask(_name_)
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# =========================
+# DATABASE
+# =========================
 
 def get_db():
-    return psycopg2.connect(DATABASE_URL)
+    conn = sqlite3.connect("users.db")
+    conn.row_factory = sqlite3.Row
+    return conn
 
-# таблица
+
+# База түзүү
 conn = get_db()
-cur = conn.cursor()
-cur.execute("""
+
+conn.execute("""
 CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT,
     password TEXT
 )
 """)
+
 conn.commit()
 conn.close()
 
+# =========================
+# HOME
+# =========================
 
-# 🔐 форма (логин эмес — жөн эле кабыл алуу)
-@app.route("/", methods=["GET", "POST"])
-def index():
+@app.route("/")
+def home():
+    return render_template("login.html")
+
+
+# =========================
+# REGISTER
+# =========================
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+
     if request.method == "POST":
+
         username = request.form["username"]
         password = request.form["password"]
 
         conn = get_db()
-        cur = conn.cursor()
 
-        # ар кандай маалымат сакталат
-        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
+        conn.execute(
+            "INSERT INTO users (username, password) VALUES (?, ?)",
+            (username, password)
+        )
 
         conn.commit()
         conn.close()
 
-        return "<h2>Сиздин запрос текшерилүүдө ⏳</h2>"
+        return """
+        <h1 style='color:green;text-align:center;margin-top:100px;'>
+        Сиздин запрос текшерилүүдө...
+        </h1>
+        """
 
-    return render_template("login.html")
+    return render_template("register.html")
 
 
-port = int(os.environ.get("PORT", 10000))
-app.run(host="0.0.0.0", port=port)
+# =========================
+# RUN
+# =========================
+
+if _name_ == "_main_":
+    app.run(debug=True)
